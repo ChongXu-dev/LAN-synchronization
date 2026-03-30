@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../widgets/history_item.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,8 +14,8 @@ class _HomeScreenState extends State<HomeScreen> {
     text: 'Paste or type your content here...',
   );
 
-  // 模拟历史记录数据
-  final List<Map<String, String>> _historyItems = [
+  // 历史记录数据
+  List<Map<String, String>> _historyItems = [
     {
       'content': 'Welcome to Local Clipboard Sharing',
       'timestamp': '2 minutes ago',
@@ -28,6 +29,43 @@ class _HomeScreenState extends State<HomeScreen> {
       'timestamp': 'Just now',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // 应用启动时读取系统剪贴板
+    _readClipboard();
+  }
+
+  // 读取系统剪贴板
+  Future<void> _readClipboard() async {
+    ClipboardData? data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data != null && data.text != null) {
+      setState(() {
+        _clipboardController.text = data.text!;
+      });
+    }
+  }
+
+  // 复制到系统剪贴板
+  Future<void> _copyToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    // 显示复制成功提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('已复制到剪贴板')),
+    );
+    // 更新当前剪贴板显示
+    setState(() {
+      _clipboardController.text = text;
+    });
+  }
+
+  // 删除历史记录项
+  void _deleteHistoryItem(int index) {
+    setState(() {
+      _historyItems.removeAt(index);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     right: 8,
                     child: FloatingActionButton.small(
                       onPressed: () {
-                        // TODO: 执行复制到系统剪贴板的逻辑
+                        // 复制当前剪贴板内容到系统剪贴板
+                        _copyToClipboard(_clipboardController.text);
                       },
                       backgroundColor: Colors.purple.shade100,
                       child: const Icon(Icons.copy, color: Colors.purple),
@@ -112,10 +151,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   content: item['content']!,
                   timestamp: item['timestamp']!,
                   onCopy: () {
-                    // TODO: 执行复制到系统剪贴板的逻辑
+                    // 复制历史记录项到系统剪贴板
+                    _copyToClipboard(item['content']!);
                   },
                   onDelete: () {
-                    // TODO: 执行删除历史记录的逻辑
+                    // 删除历史记录项
+                    _deleteHistoryItem(index);
                   },
                 );
               },
