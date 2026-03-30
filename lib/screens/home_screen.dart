@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../widgets/history_item.dart';
@@ -31,6 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
     },
   ];
 
+  // 剪贴板轮询相关
+  Timer? _clipboardPollingTimer;
+  String? _lastClipboardHash;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +44,53 @@ class _HomeScreenState extends State<HomeScreen> {
     _readClipboard();
     // 初始化网络服务
     _initializeNetworkService();
+    // 启动剪贴板轮询器
+    _startClipboardPolling();
+    // 启动Android前台服务
+    _startForegroundService();
+  }
+
+  // 启动Android前台服务
+  Future<void> _startForegroundService() async {
+    if (Platform.isAndroid) {
+      try {
+        const platform = MethodChannel('com.example.lan_clipboard/sync_service');
+        await platform.invokeMethod('startService');
+      } catch (e) {
+        print('Error starting foreground service: $e');
+      }
+    }
+  }
+
+  // 启动剪贴板轮询器
+  void _startClipboardPolling() {
+    _clipboardPollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) async {
+      await _checkClipboardChanges();
+    });
+  }
+
+  // 检查剪贴板变化
+  Future<void> _checkClipboardChanges() async {
+    ClipboardData? data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data != null && data.text != null) {
+      String currentText = data.text!;
+      String currentHash = currentText.hashCode.toString();
+      
+      // 如果剪贴板内容发生变化
+      if (_lastClipboardHash != currentHash) {
+        _lastClipboardHash = currentHash;
+        setState(() {
+          _clipboardController.text = currentText;
+          // 添加到历史记录
+          _historyItems.insert(0, {
+            'content': currentText,
+            'timestamp': 'Just now',
+          });
+        });
+        // 通过网络服务发送到其他设备
+        await NetworkService().sendClipboard(currentText);
+      }
+    }
   }
 
   // 初始化网络服务
@@ -89,6 +142,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _historyItems.removeAt(index);
     });
+  }
+
+  @override
+  void dispose() {
+    // 清理剪贴板轮询器
+    _clipboardPollingTimer?.cancel();
+    super.dispose();
   }
 
   @override

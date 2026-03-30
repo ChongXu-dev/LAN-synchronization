@@ -99,7 +99,10 @@ class NetworkService {
       try {
         HttpClient client = HttpClient();
         HttpClientRequest request = await client.post(ip, httpPort, '/clipboard');
-        request.write(content);
+        // 明确设置Content-Type为UTF-8
+        request.headers.contentType = ContentType('text', 'plain', charset: 'utf-8');
+        // 使用UTF-8编码写入内容
+        request.add(utf8.encode(content));
         HttpClientResponse response = await request.close();
         await response.drain();
         client.close();
