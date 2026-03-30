@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../widgets/history_item.dart';
+import '../services/network_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +36,27 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // 应用启动时读取系统剪贴板
     _readClipboard();
+    // 初始化网络服务
+    _initializeNetworkService();
+  }
+
+  // 初始化网络服务
+  Future<void> _initializeNetworkService() async {
+    await NetworkService().initialize((String content) {
+      // 接收到网络剪贴板内容
+      setState(() {
+        _clipboardController.text = content;
+        // 添加到历史记录
+        _historyItems.insert(0, {
+          'content': content,
+          'timestamp': 'Just now',
+        });
+      });
+      // 显示提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('从网络接收到剪贴板内容')),
+      );
+    });
   }
 
   // 读取系统剪贴板
@@ -58,6 +80,8 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _clipboardController.text = text;
     });
+    // 通过网络服务发送到其他设备
+    await NetworkService().sendClipboard(text);
   }
 
   // 删除历史记录项
