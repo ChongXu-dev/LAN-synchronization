@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+
+// 直接导入Windows版本的HomeScreen，避免图标问题
+import 'screens/home_screen_windows.dart';
 
 void main() {
   runApp(const MyApp());

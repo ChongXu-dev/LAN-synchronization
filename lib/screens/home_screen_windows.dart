@@ -5,8 +5,6 @@ import 'package:flutter/services.dart';
 import '../widgets/history_item.dart';
 import '../services/network_service.dart';
 
-
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -52,20 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _startForegroundService();
   }
 
-
-
-  // 启动Android前台服务
-  Future<void> _startForegroundService() async {
-    if (Platform.isAndroid) {
-      try {
-        const platform = MethodChannel('com.example.lan_clipboard/sync_service');
-        await platform.invokeMethod('startService');
-      } catch (e) {
-        print('Error starting foreground service: $e');
-      }
-    }
-  }
-
   // 启动剪贴板轮询器
   void _startClipboardPolling() {
     _clipboardPollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) async {
@@ -93,6 +77,18 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         // 通过网络服务发送到其他设备
         await NetworkService().sendClipboard(currentText);
+      }
+    }
+  }
+
+  // 启动Android前台服务
+  Future<void> _startForegroundService() async {
+    if (Platform.isAndroid) {
+      try {
+        const platform = MethodChannel('com.example.lan_clipboard/sync_service');
+        await platform.invokeMethod('startService');
+      } catch (e) {
+        print('Error starting foreground service: $e');
       }
     }
   }

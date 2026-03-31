@@ -54,6 +54,12 @@ class NetworkService {
       _httpServer?.listen((HttpRequest request) async {
         if (request.method == 'POST' && request.uri.path == '/clipboard') {
           String content = await utf8.decoder.bind(request).join();
+          // 提取发送者 IP 并保存
+          String senderIp = request.connectionInfo?.remoteAddress.address ?? '';
+          if (senderIp.isNotEmpty && !_discoveredDevices.contains(senderIp)) {
+            _discoveredDevices.add(senderIp);
+            print('通过 HTTP 反向发现设备: $senderIp');
+          }
           if (_onClipboardReceived != null) {
             _onClipboardReceived!(content);
           }
